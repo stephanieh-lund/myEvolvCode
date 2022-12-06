@@ -1,0 +1,23 @@
+select
+    plan_name,
+    sum(case when datediff(d,date_entered,getdate()) < 30 then remaining_balance else 0 end) as 'current',
+    sum(case when datediff(d,date_entered,getdate()) between 30 and 59 then remaining_balance else 0 end) as '30-59 days',
+    sum(case when datediff(d,date_entered,getdate()) between 60 and 89 then remaining_balance else 0 end) as '60-89 days',
+    sum(case when datediff(d,date_entered,getdate()) between 90 and 119 then remaining_balance else 0 end) as '90-119 days',
+    sum(case when datediff(d,date_entered,getdate()) >= 120 then remaining_balance else 0 end) as '120+ days',
+    sum(remaining_balance) as 'subtotal',
+    max(grand_total) as 'grand_total',
+    format(sum(remaining_balance)/max(grand_total),'p') as 'percent_of_total',
+    sum(remaining_balance)/max(grand_total) as 'percent_of_total_sort',
+    ---------- % of aging for grand total
+    format(sum(case when datediff(d,date_entered,getdate()) < 30 then remaining_balance else 0 end)/max(grand_total),'P') as 'current_p',
+    format(sum(case when datediff(d,date_entered,getdate()) between 30 and 59 then remaining_balance else 0 end)/max(grand_total),'P') as '30-59 days_p',
+    format(sum(case when datediff(d,date_entered,getdate()) between 60 and 89 then remaining_balance else 0 end)/max(grand_total),'P') as '60-89 days_p',
+    format(sum(case when datediff(d,date_entered,getdate()) between 90 and 119 then remaining_balance else 0 end)/max(grand_total),'P') as '90-119 days_p',
+    format(sum(case when datediff(d,date_entered,getdate()) >= 120 then remaining_balance else 0 end)/max(grand_total),'P') as '120+ days_p'
+    
+from claim_submission c
+left join (select billing_payment_plan_id, plan_name from billing_payment_plan_view) p on c.billing_payment_plan_id = p.billing_payment_plan_id
+left join (select is_active, sum(remaining_balance) as 'grand_total' from claim_submission group by is_active) gt on c.is_active = gt.is_active
+
+group by plan_name
